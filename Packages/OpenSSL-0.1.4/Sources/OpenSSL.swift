@@ -1,4 +1,4 @@
-// HTTPParser.swift
+// OpenSSL.swift
 //
 // The MIT License (MIT)
 //
@@ -15,30 +15,44 @@
 // copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// IMPLIED, INCLUDINbG BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#if os(Linux)
+	import Glibc
+#else
+	import Darwin.C
+#endif
+
 import Core
-import HTTP
-import HTTPParser
+import COpenSSL
 
-struct HTTPParser: HTTPResponseParserType {
-    func parseResponse(client: StreamType, completion: (Void throws -> Response) -> Void) {
-        let parser = ResponseParser { response in
-            completion({ response })
-        }
+public let DEFAULT_BUFFER_SIZE = 4096
 
-        client.receive { result in
-            do {
-                let data = try result()
-                try parser.parse(data)
-            } catch {
-                completion({ throw error })
-            }
-        }
-    }
+public final class OpenSSL: SSLType {
+
+	private static var _initialize: Void = {
+	    SSL_library_init()
+	    SSL_load_error_strings()
+	    ERR_load_crypto_strings()
+	    OPENSSL_config(nil)
+	}()
+
+	public static func initialize() {
+	    let _ = self._initialize
+	}
+
+}
+
+public func SSL_CTX_set_options(ctx: UnsafeMutablePointer<SSL_CTX>, _ op: Int) -> Int {
+	return SSL_CTX_ctrl(ctx, SSL_CTRL_OPTIONS, op, nil)
+}
+
+private let SSL_CTRL_SET_ECDH_AUTO: Int32 = 94
+public func SSL_CTX_set_ecdh_auto(ctx: UnsafeMutablePointer<SSL_CTX>, _ onoff: Int) -> Int {
+	return SSL_CTX_ctrl(ctx, SSL_CTRL_SET_ECDH_AUTO, onoff, nil)
 }

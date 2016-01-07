@@ -25,7 +25,7 @@
 import Core
 import Venice
 
-final class TCPStream: TCPStreamType {
+final class TCPStream: StreamType {
     let socket: TCPClientSocket
     var done = false
 
@@ -68,7 +68,7 @@ final class TCPStream: TCPStreamType {
         socket.close()
     }
 
-    func pipe() -> TCPStreamType {
+    func pipe() -> StreamType {
         done = true
         return TCPStream(socket: socket)
     }

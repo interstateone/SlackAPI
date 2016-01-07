@@ -1,9 +1,9 @@
 import Core
 import HTTP
 import Zeal
+import OpenSSL
 
-let client = HTTPClient(host: "www.apple.com", port: 80)
-print(client)
+let client = HTTPClient(host: "www.apple.com", port: 443, SSL: SSLClientContext())
 
 client.get("/") { result in
     do {

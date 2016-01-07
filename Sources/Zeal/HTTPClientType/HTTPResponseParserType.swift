@@ -22,8 +22,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import Core
 import HTTP
 
 public protocol HTTPResponseParserType {
-    func parseResponse(client: TCPStreamType, completion: (Void throws -> Response) -> Void)
+    func parseResponse(client: StreamType, completion: (Void throws -> Response) -> Void)
 }

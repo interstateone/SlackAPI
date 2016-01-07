@@ -22,10 +22,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import Core
 import HTTP
 
 struct HTTPSerializer: HTTPRequestSerializerType {
-    func serializeRequest(client: TCPStreamType, request: Request, completion: (Void throws -> Void) -> Void) {
+    func serializeRequest(client: StreamType, request: Request, completion: (Void throws -> Void) -> Void) {
         var string = "\(request.method) \(request.uri) HTTP/\(request.majorVersion).\(request.minorVersion)\r\n"
 
         for (name, value) in request.headers {

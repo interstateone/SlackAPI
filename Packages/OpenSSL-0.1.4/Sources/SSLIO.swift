@@ -1,4 +1,4 @@
-// HTTPParser.swift
+// SSLIO.swift
 //
 // The MIT License (MIT)
 //
@@ -15,30 +15,55 @@
 // copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// IMPLIED, INCLUDINbG BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import Core
-import HTTP
-import HTTPParser
+import COpenSSL
 
-struct HTTPParser: HTTPResponseParserType {
-    func parseResponse(client: StreamType, completion: (Void throws -> Response) -> Void) {
-        let parser = ResponseParser { response in
-            completion({ response })
-        }
+public class SSLIO {
 
-        client.receive { result in
-            do {
-                let data = try result()
-                try parser.parse(data)
-            } catch {
-                completion({ throw error })
-            }
-        }
-    }
+	public enum Method {
+		case Memory
+	}
+
+	internal var bio: BIO
+
+	public func withBIO<Result>(@noescape body: UnsafeMutablePointer<BIO> throws -> Result) rethrows -> Result {
+		return try withUnsafeMutablePointer(&bio) { try body($0) }
+	}
+
+	public init(bio: BIO) {
+		OpenSSL.initialize()
+		self.bio = bio
+	}
+
+	public init(method: Method) {
+		OpenSSL.initialize()
+		let methodObj: UnsafeMutablePointer<BIO_METHOD>
+		switch method {
+		case .Memory:
+			methodObj = BIO_s_mem()
+		}
+		self.bio = BIO_new(methodObj).memory
+	}
+
+	public func write(data: [Int8]) {
+		var data = data
+		withBIO { BIO_write($0, &data, Int32(data.count)) }
+	}
+
+	public func read() -> [Int8] {
+		var buffer: [Int8] = Array(count: DEFAULT_BUFFER_SIZE, repeatedValue: 0)
+		let readSize = withBIO { BIO_read($0, &buffer, Int32(buffer.count)) }
+		if readSize > 0 {
+			return Array(buffer.prefix(Int(readSize)))
+		} else {
+			return []
+		}
+	}
+
 }

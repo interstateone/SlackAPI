@@ -22,6 +22,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import Core
 import HTTP
 
 public struct HTTPClient: HTTPClientType {
@@ -29,7 +30,7 @@ public struct HTTPClient: HTTPClientType {
     public let serializer: HTTPRequestSerializerType = HTTPSerializer()
     public let parser: HTTPResponseParserType = HTTPParser()
 
-    public init(host: String, port: Int) {
-        self.client = TCPClient(host: host, port: port)
+    public init(host: String, port: Int, SSL: SSLClientContextType? = nil) {
+        self.client = TCPClient(host: host, port: port, SSL: SSL)
     }
 }

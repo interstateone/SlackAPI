@@ -22,26 +22,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import Core
 import Venice
 
 struct TCPClient: TCPClientType {
     let host: String
     let port: Int
-    let closeChannel = Channel<Void>()
+    let SSL: SSLClientContextType?
 
-    func connect(completion: (Void throws -> TCPStreamType) -> Void) {
-        co {
-            do {
-                let ip = try IP(address: self.host, port: self.port)
-                let socket = try TCPClientSocket(ip: ip)
-                let stream = TCPStream(socket: socket)
-                completion({ stream })
-            } catch {
-                completion({ throw error })
-                self.stop()
+    private let closeChannel = Channel<Void>()
+
+    func connect(completion: (Void throws -> StreamType) -> Void) {
+        do {
+            let ip = try IP(address: self.host, port: self.port)
+            let socket = try TCPClientSocket(ip: ip)
+
+            co {
+                do {
+                    let socketStream = TCPStream(socket: socket)
+
+                    if let SSL = self.SSL {
+                        let SSLStream = try SSL.streamType.init(context: SSL, rawStream: socketStream)
+                        completion({ SSLStream })
+                    }
+                    else {
+                        completion({ socketStream })
+                    }
+                } catch {
+                    completion({ throw error })
+                    self.stop()
+                }
             }
+            closeChannel.send()
         }
-        closeChannel.send()
+        catch {
+            completion({ throw error })
+        }
     }
 
     func stop() {

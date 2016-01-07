@@ -22,8 +22,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import Core
 import HTTP
 
 public protocol HTTPRequestSerializerType {
-    func serializeRequest(client: TCPStreamType, request: Request, completion: (Void throws -> Void) -> Void)
+    func serializeRequest(client: StreamType, request: Request, completion: (Void throws -> Void) -> Void)
 }

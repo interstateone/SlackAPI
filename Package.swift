@@ -6,6 +6,7 @@ let package = Package(
         .Package(url: "https://github.com/Zewo/WebSocket.git", majorVersion: 0, minor: 1),
         .Package(url: "https://github.com/Zewo/HTTPParser.git", majorVersion: 0, minor: 1),
         .Package(url: "https://github.com/Zewo/HTTP.git", Version(0,1,2)),
+        .Package(url: "https://github.com/Zewo/OpenSSL.git", Version(0,1,4))
     ],
     targets: [
         Target(

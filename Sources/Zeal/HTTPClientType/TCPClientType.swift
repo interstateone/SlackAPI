@@ -22,9 +22,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import Core
+
 public protocol TCPClientType {
     var host: String { get }
     var port: Int { get }
-    func connect(completion: (Void throws -> TCPStreamType) -> Void)
+    func connect(completion: (Void throws -> StreamType) -> Void)
     func stop()
 }
