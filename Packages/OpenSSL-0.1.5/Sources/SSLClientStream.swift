@@ -24,7 +24,6 @@
 
 import Core
 import COpenSSL
-import Venice
 
 public final class SSLClientStream: SSLClientStreamType {
 	let rawStream: StreamType
@@ -33,7 +32,7 @@ public final class SSLClientStream: SSLClientStreamType {
 	private let readIO: SSLIO
 	private let writeIO: SSLIO
 
-    private let waitingData = Channel<[Int8]>()
+    private var waitingData = [Int8]()
 
 	public enum Error: ErrorType {
 		case UnsupportedContext
@@ -75,10 +74,10 @@ public final class SSLClientStream: SSLClientStreamType {
                         } catch {
                             completion({ throw error })
                         }
-                        guard self.ssl.state == .OK else { return }
+                        guard self.ssl.state == .OK && self.waitingData.count > 0 else { return }
 
-                        let data = self.waitingData.receive()
-                        self.ssl.write(data!)
+                        self.ssl.write(self.waitingData)
+                        self.waitingData = []
                         let encryptedData = self.writeIO.read()
                         guard encryptedData.count > 0 else { return }
                         self.rawStream.send(encryptedData) { serializeResult in
@@ -101,7 +100,7 @@ public final class SSLClientStream: SSLClientStreamType {
 
     public func send(data: [Int8], completion: (Void throws -> Void) -> Void) {
         if self.ssl.state != .OK {
-            co(self.waitingData.send(data))
+            self.waitingData = data
             self.ssl.doHandshake()
         } else {
             self.ssl.write(data)
