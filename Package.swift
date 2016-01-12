@@ -3,10 +3,10 @@ import PackageDescription
 let package = Package(
     name: "SwiftAPI",
     dependencies: [
-        .Package(url: "https://github.com/Zewo/WebSocket.git", majorVersion: 0, minor: 1),
+        .Package(url: "https://github.com/interstateone/WebSocket.git", Version(0,1,1)),
         .Package(url: "https://github.com/Zewo/HTTPParser.git", majorVersion: 0, minor: 1),
         .Package(url: "https://github.com/Zewo/HTTP.git", Version(0,1,2)),
-        .Package(url: "https://github.com/interstateone/OpenSSL.git", Version(0,1,5))
+        .Package(url: "https://github.com/interstateone/OpenSSL.git", Version(0,1,6))
     ],
     targets: [
         Target(
