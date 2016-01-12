@@ -18,6 +18,9 @@ let package = Package(
         Target(name: "Zeal"),
         Target(
             name: "ZealExample",
+            dependencies: [.Target(name: "Zeal")]),
+        Target(
+            name: "WebSocketExample",
             dependencies: [.Target(name: "Zeal")])
     ]
 )

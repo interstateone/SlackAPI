@@ -38,7 +38,11 @@ public final class SSLClientStream: SSLClientStreamType {
 		case UnsupportedContext
 	}
 
-	public init(context: SSLClientContextType, rawStream: StreamType) throws {
+	public convenience init(context: SSLClientContextType, rawStream: StreamType) throws {
+        try self.init(context: context, rawStream: rawStream, session: nil, readIO: nil, writeIO: nil)
+	}
+
+    private init(context: SSLClientContextType, rawStream: StreamType, session: SSLSession?, readIO: SSLIO?, writeIO: SSLIO?) throws {
 		guard let sslContext = context as? SSLClientContext else {
 			throw Error.UnsupportedContext
 		}
@@ -48,16 +52,23 @@ public final class SSLClientStream: SSLClientStreamType {
 		self.context = sslContext
 		self.rawStream = rawStream
 
-		self.ssl = SSLSession(context: sslContext)
+        if let ssl = session, readIO = readIO, writeIO = writeIO {
+            self.ssl = ssl
+            self.readIO = readIO
+            self.writeIO = writeIO   
+        }
+        else {
+            self.ssl = SSLSession(context: sslContext)
 
-		self.readIO = SSLIO(method: .Memory)
-		self.writeIO = SSLIO(method: .Memory)
-		self.ssl.setIO(readIO: self.readIO, writeIO: self.writeIO)
+            self.readIO = SSLIO(method: .Memory)
+            self.writeIO = SSLIO(method: .Memory)
+            self.ssl.setIO(readIO: self.readIO, writeIO: self.writeIO)
 
-		self.ssl.withSSL { ssl in
-			SSL_set_connect_state(ssl)
-		}
-	}
+            self.ssl.withSSL { ssl in
+                SSL_set_connect_state(ssl)
+            }
+        }
+    }
 
 	public func receive(completion: (Void throws -> [Int8]) -> Void) {
 		self.rawStream.receive { result in
@@ -117,7 +128,8 @@ public final class SSLClientStream: SSLClientStreamType {
 	}
 
 	public func pipe() -> StreamType {
-		return try! SSLClientStream(context: self.context, rawStream: self.rawStream.pipe())
+        // Reuse the existing SSL session and BIOs
+		return try! SSLClientStream(context: self.context, rawStream: self.rawStream.pipe(), session: ssl, readIO: readIO, writeIO: writeIO)
 	}
 
     private func sendEncryptedDataIfNecessary(completion: (Void throws -> Void) -> Void) {
