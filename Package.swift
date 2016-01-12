@@ -11,9 +11,9 @@ let package = Package(
     targets: [
         Target(
             name: "Example",
-            dependencies: [.Target(name: "Library")]),
+            dependencies: [.Target(name: "SlackAPI")]),
         Target(
-            name: "Library",
+            name: "SlackAPI",
             dependencies: [.Target(name: "Zeal")]),
         Target(name: "Zeal"),
         Target(

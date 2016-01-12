@@ -4,7 +4,7 @@ import Glibc
 import Darwin.C
 #endif
 
-import Library
+import SlackAPI
 
 let RTM = Slack(token: "TOKEN").startRTM()
 
