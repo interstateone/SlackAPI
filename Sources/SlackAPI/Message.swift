@@ -1,9 +1,11 @@
+import JSONCore
+
 public final class Message: Event {
     public let type = EventType.Message
 
     public var timestamp = Timestamp.Pending
     public let channel: String
-    public let user: User
+    public var user: User? = nil
     public let text: String
     public let subType: MessageType?
 
@@ -18,14 +20,19 @@ public final class Message: Event {
 
     // MARK: JSONRepresentable
 
-    public var JSONRepresentation: [String: AnyObject] {
-        return [:]
+    public var JSON: JSONValue {
+        let jsonValue: JSONValue = [
+            "type": JSONValue.JSONString(type.rawValue),
+            "channel": JSONValue.JSONString(channel),
+            "text": JSONValue.JSONString(text)
+        ]
+        return jsonValue
     }
 
-    public init(JSON: [String: AnyObject]) {
-        self.user = User(ID: "", name: "")
-        self.channel = ""
-        self.text = ""
+    public init(json: JSONValue) {
+        self.channel = json["channel"]!.string!
+        self.user = User(ID: json["user"]!.string!, name: "")
+        self.text = json["text"]!.string!
         self.subType = nil
     }
 }

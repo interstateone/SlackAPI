@@ -1,10 +1,39 @@
+import JSONCore
+
 public protocol JSONRepresentable {
-    var JSONRepresentation: [String: AnyObject] { get }
-    init(JSON: [String: AnyObject])
+    var JSON: JSONValue { get }
+    init(json: JSONValue)
 }
 
 public protocol Event: JSONRepresentable {
     var type: EventType { get }
+}
+
+extension Event {
+    public var JSON: JSONValue {
+        let json: JSONValue = [
+            "type": JSONValue.JSONString(type.rawValue)
+        ]
+        return json
+    }
+}
+
+public final class Ping: Event {
+    public let type = EventType.Ping
+    init() {}
+    public init(json: JSONValue) {}
+}
+
+public final class PresenceChange: Event {
+    public let type = EventType.PresenceChange
+    init() {}
+    public init(json: JSONValue) {}
+}
+
+public final class ChannelJoined: Event {
+    public let type = EventType.ChannelJoined
+    init() {}
+    public init(json: JSONValue) {}
 }
 
 // https://api.slack.com/rtm#events
@@ -51,6 +80,7 @@ public enum EventType: String {
     case PinRemoved = "pin_removed"
     case PresenceChange = "presence_change"
     case ManualPresenceChange = "manual_presence_change"
+    case Ping = "ping"
     case PrefChange = "pref_change"
     case UserChange = "user_change"
     case TeamJoin = "team_join"

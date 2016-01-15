@@ -1,107 +1,182 @@
+import Core
+import Zeal
+import OpenSSL
+import WebSocket
+import Venice
+import HTTP
+import JSONCore
+
 public final class Slack {
-    let http = PlaceholderHTTP()
+    let http = HTTPClient(host: "slack.com", port: 443, SSL: SSLClientContext())
     let token: String
     var user: User?
 
     public init(token: String) {
         self.token = token
-        // TODO: Setup HTTP client
     }
 
-    public func startRTM() -> SlackRTM {
+    public func startRTM() throws -> SlackRTM {
         // post to rtm.start
-        http.post()
+        let formEncodedBody = "token=\(token)"
+        let contentLength: Int = formEncodedBody.data.count
+        let headers = [
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Length": String(contentLength)
+        ]
+        let startChannel = Channel<(Response, StreamType)>()
+        print("posting to rtm.start")
+        co {
+            self.http.post("/api/rtm.start", headers: headers, body: formEncodedBody) { result in
+                do {
+                    let (response, stream) = try result()
+                    startChannel.send(response, stream)
+                }
+                catch {
+                    print(error)
+                }
+            }
+        }
+        let (response, stream) = startChannel.receive()!
+        let resultJSON = try JSONParser.parseString(response.bodyString!)
 
         // create user from self info
-        user = User(ID: "", name: "")
+        user = User(ID: resultJSON["self"]!["id"]!.string!, name: resultJSON["self"]!["name"]!.string!)
 
         // get WS URL from response
-        let URL = ""
+        let URL = resultJSON["url"]!.string!
 
         // create RTM with URL
-        let RTM = SlackRTM(slack: self, URL: URL)
-        RTM.connect()
+        let RTM = SlackRTM(slack: self, URL: URL, response: response, stream: stream)
 
         return RTM
     }
 }
 
 public final class SlackRTM {
-    private let socket: WebSocketClient
+    private let http: HTTPClient
+    private let webSocketClient: WebSocketClient
+    private let webSocket: WebSocket
     private let slack: Slack
+    public typealias Listener = (Event) -> Void
     private var listeners = [Listener]()
     let URL: String
+    public let done = Channel<Void>()
 
     public var user: User? {
         return slack.user
     }
 
-    init(slack: Slack, URL: String) {
+    init(slack: Slack, URL: String, response: Response, stream: StreamType) {
         self.slack = slack
         self.URL = URL
-        self.socket = PlaceholderSocket(url: URL)
-    }
+        let webSocketChannel = Channel<WebSocket>()
 
-    func connect() {
-        socket.connect()
-        socket.onString { string in
-            do {
-                let event = try self.createEvent(string)
-                self.listeners.forEach { listener in
-                    listener(event)
+        let headers: [String: String] = [
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+            // TODO: Generate a random nonce
+            "Sec-WebSocket-Key": Base64.encode(Data(bytes: [0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5])).string!,
+            "Sec-WebSocket-Version": "13"
+        ]
+
+        let webSocketClient = WebSocketClient { webSocket in 
+            webSocketChannel.send(webSocket)
+        }
+
+        let uri = URI(string: URL)
+        let http = HTTPClient(host: uri.host!, port: 443, SSL: SSLClientContext())
+
+        co {
+            http.get(uri.path!, headers: headers) { result in
+                do {
+                    let (response, stream) = try result()
+                    print("response: \(response)")
+
+                    webSocketClient.handleResponse(response, stream)
+                } catch {
+                    print("error: \(error)")
                 }
             }
-            catch {
+        }
+
+        self.http = http
+        self.webSocketClient = webSocketClient
+        webSocket = webSocketChannel.receive()! 
+
+        webSocket.listen { webSocketEvent in
+            switch webSocketEvent {
+            case .Text(let text):
+                do {
+                    let event = try self.createEvent(text)
+                    self.dispatchEvent(event)
+                }
+                catch {
+                    print("Unable to create event for JSON: \(text)")
+                }
+            case .Ping(let buffer):
+                self.webSocket.pong(buffer)
+            case .Close(let code, let reason):
+                print("Received close event with code: \(code), reason: \(reason)")
+                self.done.receive()
+            default:
+                print("Received unhandled event: \(webSocketEvent)")
             }
         }
+
+        let ticker = Ticker(period: 2 * second)
+        co {
+            for _ in ticker.channel {
+                // self.send(Ping())
+            }
+        } 
     }
 
     private func createEvent(JSONString: String) throws -> Event {
-        // TODO: Turn string into JSON
-        let JSON: [String: AnyObject] = [:]
-        guard let eventTypeString = JSON["type"] as? String, eventType = EventType(rawValue: eventTypeString) else {
+        let json = try JSONParser.parseString(JSONString)
+        guard let eventTypeString = json["type"]?.string, eventType = EventType(rawValue: eventTypeString) else {
             throw Errors.InvalidJSON
         }
 
         switch eventType {
-        case .Message:
-            return Message(JSON: JSON)
+        case .Message: return Message(json: json)
+        case .Ping: return Ping(json: json)
+        case .PresenceChange: return PresenceChange(json: json)
+        case .ChannelJoined: return ChannelJoined(json: json)
         default: throw Errors.InvalidJSON
         }
     }
 
-    public typealias Listener = (Event) -> Void
+    func dispatchEvent(event: Event) {
+        print("Dispatching event \(event)")
+        for listener in listeners {
+            listener(event)
+        }
+    }
+
     public func listen(listener: Listener) {
         listeners.append(listener)
     }
 
-    private var lastMessageID = 0
-    public func send(message: Message) {
-        // This isn't thread-safe
-        lastMessageID += 1
-        socket.writeString("") // TODO: write the JSON string representation
+    public func waitUntilClosed() {
+        done.send()
     }
-}
+    
+    private var lastEventID: Int64 = 0
+    public func send(event: Event) {
+        lastEventID += 1
 
-protocol HTTPClient {
-    init()
-    func post()
-}
-protocol WebSocketClient {
-    init(url: String)
-    func connect()
-    func onString(handler: (String) -> Void)
-    func writeString(string: String)
-}
-final class PlaceholderHTTP: HTTPClient {
-    init() {}
-    func post() {}
-}
-final class PlaceholderSocket: WebSocketClient {
-    init(url: String) {}
-    func connect() {}
-    func onString(handler: (String) -> Void) {}
-    func writeString(string: String) {}
+        var json = event.JSON
+        json["id"] = JSONValue.JSONNumber(.JSONIntegral(lastEventID))
+
+        do {
+            let jsonString = try JSONSerializer.serializeValue(json)
+            print("Sending \(jsonString)")
+            webSocket.send(jsonString)
+        }
+        catch {
+            print("Error serializing JSON for event: \(error)")
+        }
+    }
 }
 
 enum Errors: ErrorType {
