@@ -7,6 +7,7 @@ let package = Package(
         .Package(url: "https://github.com/Zewo/HTTPParser.git", majorVersion: 0, minor: 1),
         .Package(url: "https://github.com/Zewo/HTTP.git", Version(0,1,2)),
         .Package(url: "https://github.com/interstateone/OpenSSL.git", Version(0,1,6))
+        .Package(url: "https://github.com/tyrone-sudeium/JSONCore.git", Version(1,0,0))
     ],
     targets: [
         Target(
