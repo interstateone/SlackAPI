@@ -6,8 +6,13 @@ import Darwin.C
 
 import SlackAPI
 
+guard let token = String.fromCString(getenv("SLACK_TOKEN")) where !token.isEmpty else {
+    print("A non-empty variable named SLACK_TOKEN must be available in the environment.")
+    exit(1)
+}
+
 do {
-    let RTM = try Slack(token: "***REMOVED***").startRTM()
+    let RTM = try Slack(token: token).startRTM()
 
     guard let botUser = RTM.user else { exit(1) }
 
