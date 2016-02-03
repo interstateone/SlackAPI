@@ -7,7 +7,7 @@ import PackageDescription
 #endif
 
 let package = Package(
-    name: "SwiftAPI",
+    name: "SlackAPI",
     dependencies: [
         // Some of these dependencies depend on C libraries being available. On Linux install these as follows
         // echo "deb [trusted=yes] http://apt.zewo.io/ deb ./" | sudo tee --append /etc/apt/sources.list
@@ -26,8 +26,5 @@ let package = Package(
         .Package(url: "https://github.com/Zewo/CURIParser.git", majorVersion: 0, minor: 1),
         .Package(url: "https://github.com/Zewo/CHTTPParser.git", majorVersion: 0, minor: 1),
         .Package(url: "https://github.com/tyrone-sudeium/JSONCore.git", majorVersion: 1, minor: 0)
-    ],
-    targets: [
-        Target(name: "SlackAPI")
     ]
 )
