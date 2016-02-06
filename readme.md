@@ -19,6 +19,7 @@ echo "deb [trusted=yes] http://apt.zewo.io/ deb ./" | sudo tee --append /etc/apt
 sudo apt-get update
 sudo apt-get install libvenice
 sudo apt-get install uri-parser
+sudo apt-get install http-parser
 sudo apt-get install libssl-dev
 ```
 
@@ -29,6 +30,7 @@ brew tap zewo/tap
 brew update
 brew install libvenice
 brew install uri_parser
+brew install http_parser
 brew install openssl
 brew link --force openssl
 ```
